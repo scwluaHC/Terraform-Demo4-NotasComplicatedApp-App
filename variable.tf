@@ -31,8 +31,8 @@ variable "availability_zones_2" {
 
 # VPC and network specific
 variable "allowed_cidr_blocks" {
-  type        = string
-  default = "0.0.0.0/0"
+  type    = list(any)
+  default = ["0.0.0.0/0"]
 }
 
 variable "vpc_name" {

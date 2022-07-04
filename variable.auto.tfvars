@@ -8,7 +8,7 @@ availability_zones_1 = "us-east-1a"
 
 availability_zones_2 = "us-east-1b"
 
-allowed_cidr_blocks = "0.0.0.0/0"
+allowed_cidr_blocks = ["0.0.0.0/0"]
 
 vpc_name = "scwlua-demo-vpc"
 
