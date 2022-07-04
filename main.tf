@@ -8,7 +8,7 @@ data "terraform_remote_state" "RBAC_NetworkTeam" {
   config = {
     organization = "scwlua-test"
     workspaces = {
-      name = "Terraform-Demo4-NotasComplicatedApp-Network"
+      name = "Terraform-Demo4-NotasComplicatedApp-Networks"
     }
   }
 }
