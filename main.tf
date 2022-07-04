@@ -71,7 +71,7 @@ resource "aws_db_instance" "rds" {
 # EC2 RELATED #
 # Create EC2 Instance
 resource "aws_instance" "app_server" {
-  ami                                  = var.amis[var.region]
+  ami                                  = var.amis
   instance_type                        = "t2.micro"
   associate_public_ip_address          = true
   vpc_security_group_ids               = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg1_id}", "${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg2_id}"]
