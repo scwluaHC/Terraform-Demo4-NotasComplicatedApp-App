@@ -60,7 +60,7 @@ resource "aws_db_instance" "rds" {
   db_subnet_group_name   = data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_db_subnet_grp_id
   option_group_name      = aws_db_option_group.rds.id
   publicly_accessible    = "false"
-  vpc_security_group_ids = ["${aws_security_group.rds.id}"]
+  vpc_security_group_ids = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_db_sg_id}"]
   parameter_group_name   = aws_db_parameter_group.rds.id
   skip_final_snapshot    = true
   tags = {
@@ -160,7 +160,6 @@ resource "aws_alb" "alb" {
 
 # Create ALB target group
 resource "aws_alb_target_group" "group" {
-  depends_on = [aws_vpc.vpc]
   name       = "terraform-example-alb-target"
   port       = 80
   protocol   = "HTTP"
