@@ -50,7 +50,6 @@ resource "aws_db_parameter_group" "rds" {
 
 # Create DB instance
 resource "aws_db_instance" "rds" {
-  depends_on             = [aws_db_subnet_group.rds, aws_db_option_group.rds, aws_security_group.rds, aws_db_parameter_group.rds]
   allocated_storage      = 10
   engine                 = "mysql"
   engine_version         = "5.7"
@@ -58,7 +57,7 @@ resource "aws_db_instance" "rds" {
   name                   = var.database_name
   username               = var.database_user
   password               = var.database_password
-  db_subnet_group_name   = aws_db_subnet_group.rds.id
+  db_subnet_group_name   = data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_db_subnet_grp_id
   option_group_name      = aws_db_option_group.rds.id
   publicly_accessible    = "false"
   vpc_security_group_ids = ["${aws_security_group.rds.id}"]
@@ -72,12 +71,11 @@ resource "aws_db_instance" "rds" {
 # EC2 RELATED #
 # Create EC2 Instance
 resource "aws_instance" "app_server" {
-  depends_on                           = [aws_security_group.web_sg1, aws_security_group.web_sg2, aws_subnet.web_subnet1, aws_subnet.web_subnet2, aws_db_instance.rds]
   ami                                  = var.amis[var.region]
   instance_type                        = "t2.micro"
   associate_public_ip_address          = true
-  vpc_security_group_ids               = ["${aws_security_group.web_sg1.id}", "${aws_security_group.web_sg2.id}"]
-  subnet_id                            = aws_subnet.web_subnet2.id
+  vpc_security_group_ids               = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg1_id}", "${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg2_id}"]
+  subnet_id                            = data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_websubnet2_id
   user_data                            = templatefile("user_data.tftpl", { rds_endpoint = "${aws_db_instance.rds.endpoint}", user = var.database_user, password = var.database_password, dbname = var.database_name })
   instance_initiated_shutdown_behavior = "terminate"
   root_block_device {
@@ -99,10 +97,10 @@ resource "aws_ami_from_instance" "ec2_image" {
 
 # Create autoscaling launch config
 resource "aws_launch_configuration" "ec2" {
-  depends_on      = [aws_security_group.web_sg1, aws_security_group.web_sg2, aws_ami_from_instance.ec2_image]
+  depends_on      = [aws_ami_from_instance.ec2_image]
   image_id        = aws_ami_from_instance.ec2_image.id
   instance_type   = "t2.micro"
-  security_groups = ["${aws_security_group.web_sg1.id}", "${aws_security_group.web_sg2.id}"]
+  security_groups = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg1_id}", "${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_web_sg2_id}"]
   lifecycle {
     create_before_destroy = true
   }
@@ -110,12 +108,12 @@ resource "aws_launch_configuration" "ec2" {
 
 # Create autoscaling group
 resource "aws_autoscaling_group" "ec2" {
-  depends_on           = [aws_subnet.web_subnet2, aws_subnet.web_subnet1, aws_launch_configuration.ec2]
+  depends_on           = [aws_launch_configuration.ec2]
   launch_configuration = aws_launch_configuration.ec2.id
   min_size             = 2
   max_size             = 3
   target_group_arns    = ["${aws_alb_target_group.group.arn}"]
-  vpc_zone_identifier  = ["${aws_subnet.web_subnet2.id}", "${aws_subnet.web_subnet1.id}"]
+  vpc_zone_identifier  = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_websubnet1_id}", "${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_websubnet2_id}"]
   health_check_type    = "EC2"
 }
 
@@ -124,7 +122,7 @@ resource "aws_autoscaling_group" "ec2" {
 resource "aws_security_group" "alb" {
   name        = "terraform_alb_security_group"
   description = "Terraform load balancer security group"
-  vpc_id      = aws_vpc.vpc.id
+  vpc_id      = data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_vpc_id
   ingress {
     from_port   = 443
     to_port     = 443
@@ -151,10 +149,10 @@ resource "aws_security_group" "alb" {
 
 # Create ALB
 resource "aws_alb" "alb" {
-  depends_on      = [aws_subnet.web_subnet2, aws_subnet.web_subnet1, aws_security_group.alb, aws_alb_target_group.group, aws_instance.app_server]
+  depends_on      = [aws_alb_target_group.group, aws_instance.app_server]
   name            = "terraform-example-alb"
   security_groups = ["${aws_security_group.alb.id}"]
-  subnets         = ["${aws_subnet.web_subnet2.id}", "${aws_subnet.web_subnet1.id}"]
+  subnets         = ["${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_websubnet1_id}", "${data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_websubnet2_id}"]
   tags = {
     Name = var.alb_name
   }
@@ -166,7 +164,7 @@ resource "aws_alb_target_group" "group" {
   name       = "terraform-example-alb-target"
   port       = 80
   protocol   = "HTTP"
-  vpc_id     = aws_vpc.vpc.id
+  vpc_id     = data.terraform_remote_state.RBAC_NetworkTeam.outputs.aws_vpc_id
   stickiness {
     type = "lb_cookie"
   }
