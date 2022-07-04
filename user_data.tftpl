@@ -1,0 +1,21 @@
+#!/bin/bash
+sudo yum -y install git php httpd mariadb-server
+sudo yum -y update
+sudo amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+sudo systemctl start httpd
+sudo systemctl enable httpd
+sudo usermod -a -G apache ec2-user
+sudo chown -R ec2-user:apache /var/www
+sudo chmod 2775 /var/www
+cd /var/www
+sudo mkdir inc
+sudo chmod 777 /var/www/inc
+cd /var/www/inc
+sudo echo "<?php
+define('DB_SERVER', '${rds_endpoint}');
+define('DB_USERNAME', '${user}');
+define('DB_PASSWORD', '${password}');
+define('DB_DATABASE', '${dbname}');
+?>" > dbinfo.inc
+sudo git clone https://github.com/scwlua/scwlua2tierapp.git && cd scwlua2tierapp
+sudo cp SamplePage.php index.php /var/www/html/
