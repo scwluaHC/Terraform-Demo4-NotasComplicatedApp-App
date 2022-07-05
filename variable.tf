@@ -15,7 +15,7 @@ variable "amis" {
   description = "Map for ami type"
   type        = string
   default = "ami-0dc2d3e4c0f9ebd18"
-  }
+}
 
 variable "availability_zones_1" {
   description = "AZ1"
