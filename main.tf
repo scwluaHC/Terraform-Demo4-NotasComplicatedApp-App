@@ -91,7 +91,7 @@ resource "aws_instance" "app_server" {
 resource "aws_ami_from_instance" "ec2_image" {
   # added aws_alb.alb to depends_on
   depends_on         = [aws_instance.app_server, aws_alb.alb]
-  name               = "demo-ami-mine"
+  name               = "demo-ami"
   source_instance_id = aws_instance.app_server.id
 }
 
